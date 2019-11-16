@@ -1,0 +1,163 @@
+---
+title: "hw6"
+author: "Yuqi Miao"
+date: "11/16/2019"
+output: github_document
+---
+
+```{r include=FALSE}
+library(tidyverse)
+library(broom)
+library(readxl)
+library(viridis)
+library(modelr)
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE)
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis")
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+```
+
+# Problem 1
+
+## data cleaning
+
+```{r}
+birthweight <- read_csv(file = "data/birthweight.csv") %>% 
+    janitor::clean_names() %>% 
+    mutate(
+        babysex = factor(babysex,levels = c(1,2), labels =c("male","female")),
+        frace = factor(frace, levels = c(1,2,3,4,8,9),labels = c("White","Black","Asian","Puerto Rican","Others","Unknown")),
+        malform = factor(malform, levels = c(0,1), labels = c("absent","present")),
+        mrace = factor(mrace, levels = c(1,2,3,4,8,9),labels = c("White","Black","Asian","Puerto Rican","Others","Unknown"))
+    )
+```
+
+## building data driven model
+
+### Doing SLR by making plots?
+
+```{r}
+# birthweight %>%
+#     select_if(is.numeric) %>% ## Only select continuous var
+#     select(-pnumlbw,-pnumsga,-parity) %>% ## rule out 2 columns with only # 0:pnumlbw,pnumsga,parity
+#     mutate_if(is.numeric, list(scale)) %>% ## scale the variables
+#     pivot_longer(cols = -bwt, names_to = "factor",values_to = "value") %>% 
+#     ggplot(aes(x = value, y = bwt,color = factor)) + 
+#     geom_point(alpha = 0.5, size = 0.5)+
+#     geom_smooth(method = "lm",lwd = 0.2) +
+#     scale_x_continuous(limits = c(0,2))+
+#     facet_grid(.~factor)
+ ## Because the predictors and outcome have different scales, firstly, I use scale to make every variable in (0,1), then filter the ones with only (or mostly 0),which is `pnumlbw`,`pnumsga`,`parity`,According to the simple linear regreassion results shown in the plot, choosing `bhead`,`blength`,`delwt`,`mheight`,`wtgain` as my model predictor.
+### making a overal mlr
+```
+
+### overall regression among all variables.
+```{r}
+mlr_all=lm(bwt~.,data = birthweight)
+summary(mlr_all)
+```
+Based on the overall regression, choosing the significant predictors to build a model, which includes `babysex`,`bhead`,`blength`,`delwt`,`gaweeks`,`mrace`,`smoke`.
+
+  
+
+### model building
+
+```{r}
+mlr_1 <- birthweight %>% 
+    mutate(
+        mrace = fct_infreq(mrace),
+        babysex = fct_infreq(babysex)
+        ) %>% 
+    lm(bwt~babysex+bhead+blength+delwt+mrace+gaweeks+smoken,data = .)
+summary(mlr_1)
+
+```
+### add the fitted value and residuals
+```{r}
+birthweight %>% 
+    modelr::add_residuals(mlr_1) %>% 
+    modelr::add_predictions(mlr_1) %>% 
+    ggplot(aes(y = resid, x = pred)) +
+    geom_point(color = "darkblue", alpha = 0.5,size = 0.5)+
+    geom_smooth(method = "lm")
+```
+
+As shown in plot, the residual and fitted value has no clear linear relationship.
+
+## Comparing models
+
+```{r}
+mlr_2 <- lm(bwt~blength+ gaweeks,data = birthweight)
+mlr_3 <- lm(bwt~bhead*blength*babysex, data = birthweight)
+summary(mlr_3)
+```
+
+
+### Cross validation comparision
+```{r}
+cv_bwt <- 
+    crossv_mc(birthweight,100) %>% 
+    mutate(
+        train = map(train, as.tibble),
+        test = map(test,as.tibble)
+    ) 
+cv_bwt = cv_bwt %>% 
+    mutate(
+        model1 = map(train,~lm(bwt~babysex+bhead+blength+delwt+mrace+gaweeks+smoken,data = .x)),
+        model2 = map(train,~lm(bwt~blength+ gaweeks,data = .x)),
+        model3 = map(train,~lm(bwt~bhead*blength*babysex, data = .x))
+    ) %>% 
+    mutate(
+        rmse_model1=map2_dbl(model1, test,~rmse(model = .x,data = .y)),
+        rmse_model2=map2_dbl(model2, test,~rmse(model = .x,data = .y)),
+        rmse_model3=map2_dbl(model3, test,~rmse(model = .x,data = .y))
+    )
+cv_bwt %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "models",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  mutate(
+    names = fct_inorder(ordered = rmse,f = models )
+  ) %>% 
+  ggplot(aes(x = models, y = rmse))+
+  geom_violin()
+  
+    
+```
+
+
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
