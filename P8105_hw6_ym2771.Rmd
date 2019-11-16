@@ -11,6 +11,7 @@ library(broom)
 library(readxl)
 library(viridis)
 library(modelr)
+library(patchwork)
 
 knitr::opts_chunk$set(
   echo = FALSE,
@@ -138,7 +139,85 @@ cv_bwt %>%
     
 ```
 
+# Problem 2
 
+## getting data
+
+```{r}
+weather_df =
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"),
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark
+_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+## Bootstrap samples
+
+```{r}
+boot_wd <- 
+  weather_df %>% 
+  bootstrap(5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax~tmin,data = .x)),
+    results = map(models,broom::tidy),
+    rsquare = map(models, broom::glance)
+  ) 
+boot_wd <- 
+  boot_wd%>% 
+  select(-models,-strap) %>% 
+  unnest(results,rsquare) 
+
+g1=
+  boot_wd %>% 
+  group_by(.id) %>% 
+  summarise(r_square = mean(r.squared)) %>% 
+  ggplot(aes(x = r_square)) +
+  geom_density(fill = "lightblue", color = "darkblue")
+  
+
+g2=
+  boot_wd %>% 
+  select(.id,term,estimate) %>% 
+  pivot_wider(id_cols = .id,names_from =term,values_from = estimate) %>%
+  mutate(beta0 = `(Intercept)`, beta1 = tmin) %>% 
+  mutate(log_beta_product = log(beta0*beta1)) %>% 
+  ggplot(aes(x = log_beta_product)) +
+  geom_density(fill = "lightblue", color = "darkblue")
+g1+g2
+```
+
+## counstruct CI for parameters.
+
+```{r}
+CI_rsquare <- 
+  boot_wd %>% 
+  group_by(.id) %>% 
+  summarise(r_square = mean(r.squared)) %>% 
+  ungroup() %>% 
+  summarise(upr = quantile(r_square,0.025),lwr = quantile(r_square,0.975))
+
+
+
+CI_log_beta_product <- 
+  boot_wd %>% 
+  select(.id,term,estimate) %>% 
+  pivot_wider(id_cols = .id,names_from =term,values_from = estimate) %>%
+  mutate(beta0 = `(Intercept)`, beta1 = tmin) %>% 
+  mutate(log_beta_product = log(beta0*beta1)) %>% 
+  summarise(upr = quantile(log_beta_product,0.025),lwr = quantile(log_beta_product,0.975))
+
+CI_table <- 
+  bind_rows(CI_log_beta_product,CI_rsquare) %>% 
+  mutate(category = c("log_beta_product","rsquare"))
+
+knitr::kable(CI_table, caption = "95% Confidence Interval for log_beta_product and r_square" )  
   
 ```
 
