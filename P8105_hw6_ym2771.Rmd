@@ -40,6 +40,7 @@ birthweight <- read_csv(file = "data/birthweight.csv") %>%
         malform = factor(malform, levels = c(0,1), labels = c("absent","present")),
         mrace = factor(mrace, levels = c(1,2,3,4,8,9),labels = c("White","Black","Asian","Puerto Rican","Others","Unknown"))
     )
+
 ```
 
 ## building data driven model
@@ -66,7 +67,7 @@ birthweight <- read_csv(file = "data/birthweight.csv") %>%
 mlr_all=lm(bwt~.,data = birthweight)
 summary(mlr_all)
 ```
-Based on the overall regression, choosing the significant predictors to build a model, which includes `babysex`,`bhead`,`blength`,`delwt`,`gaweeks`,`mrace`,`smoke`.
+Firstly, I put all variables in the model, and based on the coefficient significance test, we choose variables with p-value of coefficient smaller than 0.005. Based on the overall regression, choosing the significant predictors to build a model, which includes `babysex`,`bhead`,`blength`,`delwt`,`gaweeks`,`mrace`,`smoke`.
 
   
 
@@ -89,10 +90,11 @@ birthweight %>%
     modelr::add_predictions(mlr_1) %>% 
     ggplot(aes(y = resid, x = pred)) +
     geom_point(color = "darkblue", alpha = 0.5,size = 0.5)+
-    geom_smooth(method = "lm")
+    geom_smooth(method = "lm")+
+    geom_line(aes(y = 0), linetype = "dashed")
 ```
 
-As shown in plot, the residual and fitted value has no clear linear relationship.
+As shown in plot, the residual and fitted value has no clear linear relationship, which means that the model 
 
 ## Comparing models
 
@@ -131,13 +133,17 @@ cv_bwt %>%
     names_prefix = "rmse_"
   ) %>% 
   mutate(
-    names = fct_inorder(ordered = rmse,f = models )
+    models = fct_reorder(models,rmse)
   ) %>% 
   ggplot(aes(x = models, y = rmse))+
   geom_violin()
   
     
 ```
+
+## comment
+
+Based on the the plot above, model1 shows the best performance, and model2 which only includes main effect, shows the worst performance.
 
 # Problem 2
 
@@ -192,6 +198,10 @@ g2=
   geom_density(fill = "lightblue", color = "darkblue")
 g1+g2
 ```
+
+### comment
+Based on the plot above, the distribution of the 
+
 
 ## counstruct CI for parameters.
 
