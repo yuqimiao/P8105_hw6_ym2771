@@ -45,7 +45,6 @@ birthweight <- read_csv(file = "data/birthweight.csv") %>%
 
 ## building data driven model
 
-### Doing SLR by making plots?
 
 ```{r}
 # birthweight %>%
@@ -67,7 +66,7 @@ birthweight <- read_csv(file = "data/birthweight.csv") %>%
 mlr_all=lm(bwt~.,data = birthweight)
 summary(mlr_all)
 ```
-Firstly, I put all variables in the model, and based on the coefficient significance test, we choose variables with p-value of coefficient smaller than 0.005. Based on the overall regression, choosing the significant predictors to build a model, which includes `babysex`,`bhead`,`blength`,`delwt`,`gaweeks`,`mrace`,`smoke`.
+Firstly, I put all variables in the model, and based on the coefficient significance test, we choose variables with p-value of coefficient smaller than 0.005. Based on the overall regression, choosing the significant predictors to build a model, which includes `babysex`,`bhead`,`blength`,`delwt`,`gaweeks`,`mrace`,`smoke`. As shown in the summary table, the Adjusted R-squared has come up to 0.717, which shows relatively great performance.
 
   
 
@@ -94,7 +93,7 @@ birthweight %>%
     geom_line(aes(y = 0), linetype = "dashed")
 ```
 
-As shown in plot, the residual and fitted value has no clear linear relationship, which means that the model 
+As shown in plot, the residual and fitted value has no relationship, though the residuals shows reletively constant variance, the magnitute of residuals is relatively high, indicating high variance of the model.
 
 ## Comparing models
 
@@ -200,7 +199,7 @@ g1+g2
 ```
 
 ### comment
-Based on the plot above, the distribution of the 
+Based on the plot above, the distribution of these two parameters are nearly normal with slight left skewness and relatively heavy tails. 
 
 
 ## counstruct CI for parameters.
