@@ -141,6 +141,13 @@ cv_bwt %>%
 ```
 
 ## comment
+Here we make comparison between 3 models: 
+
+* model1(self-builted) is stated above
+
+* model2 takes the main effect of `blength` + `gaweeks` 
+
+* model 3 is the saturated model of `bhead`,`blength` and `babysex`
 
 Based on the the plot above, model1 shows the best performance, and model2 which only includes main effect, shows the worst performance.
 
